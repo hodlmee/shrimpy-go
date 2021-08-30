@@ -65,9 +65,3 @@ type ActivatePortfolioResponse struct {
 type RebalanceResponse struct {
 	Success bool `json:"success"`
 }
-
-type AccountData struct {
-	Name              string    `json:"name"`
-	LastProcessedTime time.Time `json:"lastProcessed"`
-	IsStale           bool      `json:"isStale"`
-}

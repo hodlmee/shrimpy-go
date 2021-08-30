@@ -26,7 +26,7 @@ type Shrimpy interface {
 	RebalanceAccount(exchangeAccountId int) (err error)
 }
 
-// MustNewShrimpyPrediction gets a shrimpy prediction function
+// MustNewShrimpyPrediction initializes a shrimpy client
 func MustNewShrimpy(baseURL, apiKey, apiSecret string, logger *zap.Logger) Shrimpy {
 	return &shrimpy{
 		baseURL:   baseURL,
@@ -36,6 +36,7 @@ func MustNewShrimpy(baseURL, apiKey, apiSecret string, logger *zap.Logger) Shrim
 	}
 }
 
+// shrimpy client implementation
 type shrimpy struct {
 	baseURL   string
 	apiKey    string
