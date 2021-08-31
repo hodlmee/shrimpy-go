@@ -13,7 +13,7 @@ An example program has been included to demonstrate how to use the client to ret
 ```
 ## About the author
 
-I am HODLME, a popular featured leader on Shrimpy's social trading platform. This library is a small part of my proprietary account trading software. I am releasing it for public use in support of the Shrimpy community. For more information on my trading strategy and results, please see my Shrimpy leader profiles:
+I am HODLME, a popular featured leader on Shrimpy's social trading platform. This library is a small part of my [proprietary account trading software](https://github.com/hodlmee/status). I am releasing it for public use in support of the Shrimpy community. For more information on my trading strategy and results, please see my Shrimpy leader profiles:
 
 - Kraken - https://dashboard.shrimpy.io/leader/hodlme
 - Coinbase Pro - https://dashboard.shrimpy.io/leader/goalaska
