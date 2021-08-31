@@ -65,3 +65,14 @@ type ActivatePortfolioResponse struct {
 type RebalanceResponse struct {
 	Success bool `json:"success"`
 }
+
+type TickerResponse []TickerEntry
+
+type TickerEntry struct {
+	Name                string    `json:"name"`
+	Symbol              string    `json:"symbol"`
+	Priceusd            string    `json:"priceUsd"`
+	Pricebtc            string    `json:"priceBtc"`
+	Percentchange24Husd string    `json:"percentChange24hUsd"`
+	Lastupdated         time.Time `json:"lastUpdated"`
+}

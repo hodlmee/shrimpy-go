@@ -21,9 +21,10 @@ type Shrimpy interface {
 	GetAccounts() ([]AccountResponse, error)
 	GetBalance(exchangeAccountId int) (BalanceResponse, error)
 	GetPortfolios(exchangeAccountId int) ([]PortfolioResponse, error)
-	UpdatePortfolio(exchangeAccountId, portfolioId int, request PortfolioUpdateRequest) (err error)
-	ActivatePortfolio(exchangeAccountId, portfolioID int) (err error)
-	RebalanceAccount(exchangeAccountId int) (err error)
+	GetTicker(exchangeName string) (TickerResponse, error)
+	UpdatePortfolio(exchangeAccountId, portfolioId int, request PortfolioUpdateRequest) error
+	ActivatePortfolio(exchangeAccountId, portfolioID int) error
+	RebalanceAccount(exchangeAccountId int) error
 }
 
 // MustNewShrimpyPrediction initializes a shrimpy client
@@ -125,6 +126,34 @@ func (s *shrimpy) GetPortfolios(exchangeAccountId int) (ret []PortfolioResponse,
 	}
 
 	s.logger.Debug("successfully retrieved portfolios", zap.String("body", string(body)), zap.Any("portfolios", ret))
+	return
+}
+
+// GetTicker retrieves current exchange prices
+func (s *shrimpy) GetTicker(exchangeName string) (ret TickerResponse, err error) {
+	// prepare the base request
+	url := fmt.Sprintf("%s/v1/%s/ticker", s.baseURL, strings.ToLower(exchangeName))
+	s.logger.Debug("retrieving exchange ticker", zap.String("url", url))
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		s.logger.Error("error generating request", zap.Error(err))
+		return
+	}
+	resp, err := s.doRequest(req, http.StatusOK, "")
+	if err != nil {
+		s.logger.Error("request error", zap.Error(err))
+		return
+	}
+
+	// handle response
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	if err = json.Unmarshal(body, &ret); err != nil {
+		s.logger.Error("unable to parse response", zap.Error(err), zap.String("body", string(body)))
+		return
+	}
+
+	s.logger.Debug("successfully retrieved exchange ticker", zap.String("body", string(body)), zap.Any("data", ret))
 	return
 }
 

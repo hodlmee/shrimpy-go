@@ -52,11 +52,20 @@ func main() {
 		logger.Fatal("SHRIMPY_SECRET is not set")
 	}
 
-	// initialize the shrimpy client and list accounts
+	// initialize the shrimpy client
 	shrimpyClient := shrimpy.MustNewShrimpy(config.URL, config.Key, config.Secret, logger)
+
+	// list accounts
 	accounts, err := shrimpyClient.GetAccounts()
 	if err != nil {
 		logger.Fatal("error retrieving accounts", zap.Error(err))
 	}
 	logger.Info("successfully found accounts", zap.Any("accounts", accounts))
+
+	// retrieve kraken ticker data
+	tickerData, err := shrimpyClient.GetTicker("kraken")
+	if err != nil {
+		logger.Fatal("error retrieving ticker data", zap.Error(err))
+	}
+	logger.Info("successfully retrieved ticker data", zap.Any("data", tickerData))
 }
