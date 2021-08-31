@@ -42,6 +42,7 @@ type shrimpy struct {
 	baseURL   string
 	apiKey    string
 	apiSecret string
+	nonce     int
 	logger    *zap.Logger
 }
 
@@ -266,7 +267,8 @@ func (s *shrimpy) ActivatePortfolio(exchangeAccountId, portfolioID int) (err err
 // doRequest prepare and send request to shrimpy API
 func (s *shrimpy) doRequest(req *http.Request, expectedRC int, body string) (*http.Response, error) {
 	now := time.Now()
-	nonce := strconv.FormatInt(now.Unix(), 10)
+	nonce := strconv.FormatInt(now.Unix()+int64(s.nonce), 10)
+	s.nonce++
 
 	// create signature
 	signature, err := s.getSignature(req.URL.Path, req.Method, nonce, body)
