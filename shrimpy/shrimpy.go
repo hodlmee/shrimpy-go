@@ -16,6 +16,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	invalidNonceError = "invalid nonce"
+)
+
 // Shrimpy interface definition
 type Shrimpy interface {
 	GetAccounts() ([]AccountResponse, error)
@@ -42,7 +46,7 @@ type shrimpy struct {
 	baseURL   string
 	apiKey    string
 	apiSecret string
-	nonce     int
+	nonce     int64
 	logger    *zap.Logger
 }
 
@@ -266,22 +270,27 @@ func (s *shrimpy) ActivatePortfolio(exchangeAccountId, portfolioID int) (err err
 
 // doRequest prepare and send request to shrimpy API
 func (s *shrimpy) doRequest(req *http.Request, expectedRC int, body string) (*http.Response, error) {
-	now := time.Now()
-	nonce := strconv.FormatInt(now.Unix()+int64(s.nonce), 10)
-	s.nonce++
+
+	// ensure the nonce is larger than last value sent
+	nonce := time.Now().Unix()
+	if nonce <= s.nonce {
+		nonce = s.nonce + 1
+	}
+	s.nonce = nonce
 
 	// create signature
-	signature, err := s.getSignature(req.URL.Path, req.Method, nonce, body)
+	nonceStr := strconv.FormatInt(s.nonce, 10)
+	signature, err := s.getSignature(req.URL.Path, req.Method, nonceStr, body)
 	if err != nil {
 		s.logger.Error("error generating signature", zap.Error(err))
 		return nil, err
 	}
 
 	// add required headers
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("SHRIMPY-API-KEY", s.apiKey)
-	req.Header.Add("SHRIMPY-API-NONCE", nonce)
-	req.Header.Add("SHRIMPY-API-SIGNATURE", signature)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("SHRIMPY-API-KEY", s.apiKey)
+	req.Header.Set("SHRIMPY-API-NONCE", nonceStr)
+	req.Header.Set("SHRIMPY-API-SIGNATURE", signature)
 
 	// make the request
 	client := &http.Client{}
@@ -292,9 +301,17 @@ func (s *shrimpy) doRequest(req *http.Request, expectedRC int, body string) (*ht
 	}
 	if resp.StatusCode != expectedRC {
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		msg := fmt.Sprintf("unexpected response code %d: %s", resp.StatusCode, string(body))
-		s.logger.Error(msg, zap.String("response", string(body)))
+		responseBody, _ := ioutil.ReadAll(resp.Body)
+		msg := fmt.Sprintf("unexpected response code %d: %s", resp.StatusCode, string(responseBody))
+		if strings.Contains(strings.ToLower(msg), invalidNonceError) {
+
+			// update the nonce and try again
+			s.logger.Info("retrying request with updated nonce")
+			s.nonce += 30
+			time.Sleep(3 * time.Second) // protects from getting rate limited (60/req minute limit)
+			return s.doRequest(req, expectedRC, body)
+		}
+		s.logger.Error(msg, zap.String("response", string(responseBody)))
 		return resp, errors.New(msg)
 	}
 	s.logger.Debug("request successful")
@@ -315,6 +332,6 @@ func (s *shrimpy) getSignature(path, method, nonce, body string) (string, error)
 		return "", err
 	}
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
-	s.logger.Debug("successfully generated signature", zap.String("prehash", prehash), zap.String("signature", signature))
+	s.logger.Debug("successfully generated signature", zap.String("nonce", nonce), zap.String("prehash", prehash), zap.String("signature", signature))
 	return signature, nil
 }
